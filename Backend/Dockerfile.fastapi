@@ -1,0 +1,45 @@
+FROM python:3.11-slim
+
+# System deps for OpenCV headless + FAISS + Node.js (required by yt-dlp for YouTube extraction)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 ffmpeg curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+
+# CPU-only torch — no CUDA, much smaller build (~800MB vs ~2.5GB)
+# torchvision not needed — CLIP uses transformers, not torchvision
+RUN pip install --no-cache-dir torch \
+    --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Pre-download CLIP ViT-B/32 weights at build time so the first ingest
+# has zero HuggingFace network latency.  The weights (~350MB) are cached
+# in the Docker layer and loaded in float16 at runtime (~175MB RAM).
+RUN python -c "\
+from transformers import CLIPProcessor, CLIPModel; \
+import torch; \
+CLIPModel.from_pretrained('openai/clip-vit-base-patch32', torch_dtype=torch.float16); \
+CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32'); \
+print('CLIP ViT-B/32 cached in float16')"
+
+# Download model files from GCS at build time (if bucket is set)
+# For Cloud Run: models are downloaded on container startup via entrypoint
+# This layer is skipped if MODEL_GCS_BUCKET is not set during build
+ARG MODEL_GCS_BUCKET=""
+ENV MODEL_GCS_BUCKET=${MODEL_GCS_BUCKET}
+
+EXPOSE 8001
+
+# Entrypoint script downloads models from GCS on startup, then runs the app
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "main.py"]

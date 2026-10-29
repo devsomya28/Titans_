@@ -1,0 +1,189 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+import json
+import re
+import time
+import secrets
+import logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+# Licensing revenue rates (USD per 1000 views) — these are the IP holder's
+# share from a licensing deal, NOT the full ad CPM.
+# Real-world content licensing for fan/UGC content pays 10-20% of ad revenue.
+# YouTube ad CPM ~$4.50 → IP holder licensing rate ~$0.50-0.80/1000 views
+PLATFORM_CPM = {
+    "YouTube":   0.60,   # ~13% of YouTube's $4.50 CPM
+    "TikTok":    0.004,  # TikTok pays very little; licensing even less
+    "Twitter":   0.08,
+    "Facebook":  0.15,
+    "Instagram": 0.20,
+    "Telegram":  0.02,
+    "Reddit":    0.05,
+    "Other":     0.08,
+}
+
+_CONTRACT_PROMPT = """You are a Web3 revenue broker and IP licensing specialist.
+Draft a smart contract licensing agreement for the following Fair Use content.
+Output ONLY a JSON object — no markdown fences, no prose outside the JSON.
+
+DEAL CONTEXT:
+- Creator Account: {target_account}
+- Platform: {platform}
+- Video Title: {video_title}
+- View Count: {view_count}
+- Engagement Tier: {tier}
+- Copyright Holder Share: {copyright_holder_share}%
+- Creator Share: {creator_share}%
+- Justification: {justification}
+- Estimated Monthly Revenue: ${estimated_monthly_revenue}
+
+Return exactly this JSON:
+{{
+  "contract_title": "<descriptive title>",
+  "copyright_holder_share": {copyright_holder_share},
+  "creator_share": {creator_share},
+  "duration_months": <integer 6-24>,
+  "payment_schedule": "monthly",
+  "terms": "<2-3 sentences>",
+  "dispute_resolution": "<1 sentence>",
+  "special_clauses": "<tier-specific clauses or null>",
+  "estimated_monthly_revenue_usd": {estimated_monthly_revenue},
+  "ip_holder_monthly_cut_usd": <float>,
+  "network": "Polygon (Mock)",
+  "rationale": "<1 sentence>"
+}}"""
+
+_QUOTA_SIGNALS = ("429", "quota", "resource_exhausted", "rate_limit", "too many requests")
+
+def _is_quota(e: Exception) -> bool:
+    return any(s in str(e).lower() for s in _QUOTA_SIGNALS)
+
+
+def _call_llm(prompt: str) -> str:
+    groq_key   = os.getenv("GROQ_API_KEY",  "").strip()
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+    if groq_key:
+        from groq import Groq
+        client = Groq(api_key=groq_key)
+        for model, delay in [
+            ("llama-3.3-70b-versatile", 0),
+            ("llama-3.1-8b-instant",    15),
+        ]:
+            try:
+                if delay:
+                    logger.warning(f"[Broker] Rate limit — retrying with {model} in {delay}s…")
+                    time.sleep(delay)
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": "You are a Web3 revenue broker. Output only valid JSON."},
+                        {"role": "user",   "content": prompt},
+                    ],
+                    temperature=0.2,
+                    max_tokens=768,
+                )
+                return resp.choices[0].message.content.strip()
+            except Exception as e:
+                if _is_quota(e):
+                    continue
+                raise
+
+    if gemini_key:
+        import google.generativeai as genai
+        genai.configure(api_key=gemini_key)
+        model  = genai.GenerativeModel("gemini-2.0-flash-lite")
+        result = model.generate_content(prompt)
+        return result.text.strip()
+
+    raise RuntimeError("[Broker] No API keys configured.")
+
+
+def _calculate_tier(view_count: int) -> str:
+    if view_count >= 1_000_000: return "Platinum"
+    if view_count >= 100_000:   return "Gold"
+    if view_count >= 10_000:    return "Silver"
+    return "Bronze"
+
+
+def _recommend_split(tier: str, risk_score: int) -> tuple[int, int]:
+    base = {"Platinum": (20, 80), "Gold": (25, 75), "Silver": (30, 70), "Bronze": (35, 65)}[tier]
+    holder, creator = base
+    if risk_score > 50:
+        adjustment = ((risk_score - 50) // 10) * 2
+        holder  = min(holder + adjustment, 49)
+        creator = 100 - holder
+    return holder, creator
+
+
+def _estimate_monthly_revenue(view_count: int, platform: str) -> float:
+    cpm = PLATFORM_CPM.get(platform, 0.08)
+    raw = (view_count / 1000) * cpm
+    # Cap at $500/mo — realistic ceiling for a single fan content licensing deal
+    return round(min(raw, 500.0), 2)
+
+
+def deploy_contract(
+    target_account: str,
+    platform: str,
+    video_title: str,
+    video_url: str = "",
+    justification: str = "",
+    view_count: int = 0,
+    risk_score: int = 30,
+) -> dict:
+    tier                        = _calculate_tier(view_count)
+    holder_share, creator_share = _recommend_split(tier, risk_score)
+    estimated_revenue           = _estimate_monthly_revenue(view_count, platform)
+
+    prompt = _CONTRACT_PROMPT.format(
+        target_account=target_account,
+        platform=platform,
+        video_title=video_title,
+        view_count=view_count,
+        tier=tier,
+        copyright_holder_share=holder_share,
+        creator_share=creator_share,
+        justification=justification or "Fair use content identified.",
+        estimated_monthly_revenue=estimated_revenue,
+    )
+
+    try:
+        raw = _call_llm(prompt)
+        raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
+        raw = re.sub(r"\s*```$", "", raw)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        contract_data = json.loads(match.group()) if match else {}
+    except Exception as e:
+        logger.warning(f"[Broker] LLM call failed ({e}) — generating deterministic smart contract data.")
+        contract_data = {
+            "contract_title": f"MediaGuard Fair-Use Revenue Share ({tier} Tier)",
+            "copyright_holder_share": holder_share,
+            "creator_share": creator_share,
+            "duration_months": 12,
+            "payment_schedule": "monthly",
+            "terms": f"Authorized revenue-sharing agreement for transformative derivative content on {platform}. Split: {holder_share}% rights holder, {creator_share}% creator.",
+            "dispute_resolution": "Binding online arbitration via MediaGuard protocol.",
+            "estimated_monthly_revenue_usd": estimated_revenue,
+            "ip_holder_monthly_cut_usd": round(estimated_revenue * (holder_share / 100.0), 2),
+            "network": "Polygon (Mock)",
+            "rationale": justification or "Automated fair-use monetization proposal.",
+        }
+
+    return {
+        "tx_hash":                   "0x" + secrets.token_hex(32),
+        "tier":                      tier,
+        "copyright_holder_share":    holder_share,
+        "creator_share":             creator_share,
+        "estimated_monthly_revenue": estimated_revenue,
+        "contract_data":             contract_data,
+        "network":                   "Polygon (Mock)",
+        "target_account":            target_account,
+        "platform":                  platform,
+    }

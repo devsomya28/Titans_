@@ -1,0 +1,16 @@
+# Netscape HTTP Cookie File
+# https://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file! Do not edit.
+
+.instagram.com	TRUE	/	TRUE	1801069665	mid	aUrMYAALAAEGSMMjKRN5yFD-SE-q
+.instagram.com	TRUE	/	TRUE	1798045671	ig_nrcb	1
+.instagram.com	TRUE	/	TRUE	1805995325	ps_l	1
+.instagram.com	TRUE	/	TRUE	1805995325	ps_n	1
+.instagram.com	TRUE	/	TRUE	1820953536	ig_did	8494A561-04BC-4673-9788-E60FD9153AE2
+.instagram.com	TRUE	/	TRUE	1825848721	datr	j-XEajW9OQeIW-gOhnzTiOoQ
+.instagram.com	TRUE	/	TRUE	1793872802	dpr	1.25
+.instagram.com	TRUE	/	TRUE	1827827998	csrftoken	KkcRS2E1FublbhGRZG2DaY6dRCVAQonz
+.instagram.com	TRUE	/	TRUE	1801043998	ds_user_id	16779166070
+.instagram.com	TRUE	/	TRUE	1824803907	sessionid	16779166070%3AfNGJOhbNe437xo%3A11%3AAYn6UssV_mR-F9CPxSq1n3MZpBporSXYzyPoN106cw
+.instagram.com	TRUE	/	TRUE	1793873303	wd	767x730
+.instagram.com	TRUE	/	TRUE	0	rur	RCD%2C17841416742127395%2C1794478104%3A01ff5e61919b0904adb0c496221e2b1de523bf5bf4a21297dacd0580bb8afe21a44a2d73

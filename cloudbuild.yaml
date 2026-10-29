@@ -1,0 +1,110 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# MediaGuard Sports — Google Cloud Build Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+# Builds both containers and deploys to Cloud Run.
+# Trigger: push to main branch or manual trigger.
+#
+# Required substitutions (set in Cloud Build trigger):
+#   _REGION: e.g., us-central1
+#   _PROJECT_ID: your GCP project ID
+#   _MONGO_URI: MongoDB connection string
+#   _REDIS_URL: Upstash Redis URL
+#   _GEMINI_API_KEY: Gemini API key
+#   _GROQ_API_KEY: Groq API key
+
+substitutions:
+  _REGION: us-central1
+  _REPO: mediaguard
+
+steps:
+  # ── Step 1: Build FastAPI ML Engine image ──────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-fastapi:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-fastapi:latest'
+      - '-f'
+      - 'Backend/Dockerfile.fastapi'
+      - 'Backend/'
+    timeout: '1800s'  # 30 min (torch + transformers download)
+
+  # ── Step 2: Build Node.js Orchestrator image ───────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-node:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-node:latest'
+      - '-f'
+      - 'Backend/Dockerfile.node'
+      - 'Backend/'
+    timeout: '300s'
+
+  # ── Step 3: Push FastAPI image ─────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-fastapi'
+
+  # ── Step 4: Push Node.js image ─────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-node'
+
+  # ── Step 5: Deploy FastAPI to Cloud Run ────────────────────────────────────
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mediaguard-fastapi'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-fastapi:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--memory=4Gi'
+      - '--cpu=2'
+      - '--timeout=900'
+      - '--concurrency=10'
+      - '--min-instances=1'
+      - '--max-instances=5'
+      - '--port=8001'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=MODEL_GCS_BUCKET=mediaguard-models,PORT=8001,NODE_ENV=production,WATCHDOG_ENABLED=true,WATCHDOG_INTERVAL_HOURS=0.5,WATCHDOG_ALERT_THRESHOLD=25'
+      - '--set-secrets=GEMINI_API_KEY=mediaguard-gemini-key:latest,GROQ_API_KEY=mediaguard-groq-key:latest,MONGO_URI=mediaguard-mongo-uri:latest,REDIS_URL=mediaguard-redis-url:latest'
+
+  # ── Step 6: Deploy Node.js to Cloud Run ────────────────────────────────────
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mediaguard-node'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-node:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--timeout=300'
+      - '--concurrency=80'
+      - '--min-instances=1'
+      - '--max-instances=10'
+      - '--port=8000'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=NODE_ENV=production,NODE_PORT=8000'
+      - '--set-secrets=GEMINI_API_KEY=mediaguard-gemini-key:latest,GROQ_API_KEY=mediaguard-groq-key:latest,MONGO_URI=mediaguard-mongo-uri:latest,REDIS_URL=mediaguard-redis-url:latest,FASTAPI_URL=mediaguard-fastapi-url:latest'
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-fastapi:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/mediaguard-node:${SHORT_SHA}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '3600s'

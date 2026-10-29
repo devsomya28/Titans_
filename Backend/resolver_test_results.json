@@ -1,0 +1,110 @@
+[
+  {
+    "platform": "Twitter",
+    "title": "",
+    "uploader": "",
+    "url": "https://x.com/NBA/status/1785124233159344400",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [twitter] 1785124233159344400: No video could be found in this tweet",
+    "elapsed_sec": 3.75
+  },
+  {
+    "platform": "Twitter",
+    "title": "",
+    "uploader": "",
+    "url": "https://x.com/premierleague/status/1784931362699563228",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [twitter] 1784931362699563228: No video could be found in this tweet",
+    "elapsed_sec": 3.62
+  },
+  {
+    "platform": "Twitter",
+    "title": "",
+    "uploader": "",
+    "url": "https://x.com/espn/status/1785509930777121271",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [twitter] 1785509930777121271: No video could be found in this tweet",
+    "elapsed_sec": 3.82
+  },
+  {
+    "platform": "TikTok",
+    "title": "",
+    "uploader": "",
+    "url": "https://www.tiktok.com/@nba/video/7363486161108258090",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [TikTok] 7363486161108258090: Unable to download webpage: Failed to perform, curl: (28) Connection timed out after 10004 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html first for more details. (caused by TransportError('Failed to perform, curl: (28) Connection timed out after 10004 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.'))",
+    "elapsed_sec": 21.11
+  },
+  {
+    "platform": "TikTok",
+    "title": "",
+    "uploader": "",
+    "url": "https://www.tiktok.com/@nba/video/7361250269094251822",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [TikTok] 7361250269094251822: Unable to download webpage: Failed to perform, curl: (28) Connection timed out after 10013 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html first for more details. (caused by TransportError('Failed to perform, curl: (28) Connection timed out after 10013 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.'))",
+    "elapsed_sec": 21.11
+  },
+  {
+    "platform": "TikTok",
+    "title": "",
+    "uploader": "",
+    "url": "https://www.tiktok.com/@nba/video/7365342410389146922",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [TikTok] 7365342410389146922: Unable to download webpage: Failed to perform, curl: (28) Connection timed out after 10008 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html first for more details. (caused by TransportError('Failed to perform, curl: (28) Connection timed out after 10008 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.'))",
+    "elapsed_sec": 21.09
+  },
+  {
+    "platform": "Facebook",
+    "title": "",
+    "uploader": "",
+    "url": "https://www.facebook.com/watch/?v=10155353594956983",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [facebook] 10155353594956983: Cannot parse data; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U",
+    "elapsed_sec": 6.67
+  },
+  {
+    "platform": "Facebook",
+    "title": "",
+    "uploader": "",
+    "url": "https://www.facebook.com/NBA/videos/876352824246101/",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [facebook] 876352824246101: Cannot parse data; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U",
+    "elapsed_sec": 5.09
+  },
+  {
+    "platform": "Facebook",
+    "title": "",
+    "uploader": "",
+    "url": "https://www.facebook.com/watch/?v=539744498565144",
+    "thumbnail_url": "",
+    "duration": null,
+    "view_count": null,
+    "status": "BLOCKED",
+    "error": "ERROR: [facebook] 539744498565144: Cannot parse data; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U",
+    "elapsed_sec": 6.84
+  }
+]

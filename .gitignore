@@ -1,0 +1,57 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment variables (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# ML artifacts & model files (too large for git — stored on GCS)
+*.mp4
+*.faiss
+*.pkl
+*.pth
+*.onnx
+*.onnx.data
+Backend/assets/official/
+
+# Evidence vault (runtime artifacts — not source code)
+Backend/evidence_vault/
+Backend/vault/
+
+# YouTube cookies — contains session tokens, never commit
+Backend/cookies.txt
+Backend/yt_cookies.txt
+
+# Firebase
+.firebase/
+.firebaserc
+*.part
+*.ytdl

@@ -1,0 +1,30 @@
+# MediaGuard Sports - Python Requirements
+# Fixed for Python 3.14 compatibility (all packages use pre-built cp314 wheels)
+
+fastapi==0.115.6
+uvicorn==0.34.0
+# pydantic 2.10.4 needs pydantic-core 2.27.2 which has no cp314 wheel -> use latest
+pydantic>=2.11.0
+python-dotenv==1.0.1
+groq==0.12.0
+google-generativeai==0.8.4
+yt-dlp==2024.12.23
+opencv-python-headless==4.10.0.84
+torch
+transformers==4.47.1
+faiss-cpu==1.15.1
+# Pillow 11.0.0 has no cp314 wheel -> use 11.1+
+Pillow>=11.1.0
+# numpy 1.26.4 has no cp314 wheel (requires GCC 8.4+) -> use 2.x
+numpy>=2.0.0
+requests==2.32.3
+ImageHash==4.3.1
+# scipy 1.14.1 may have cp314 wheel issues -> use >=1.15
+scipy>=1.15.0
+google-cloud-storage==2.19.0
+redis==5.2.1
+easyocr==1.7.2
+imageio-ffmpeg==0.5.1
+# onnxruntime 1.20.1 has no cp314 wheel (starts at 1.24.1) -> use latest
+onnxruntime>=1.24.1
+gdown==5.2.0

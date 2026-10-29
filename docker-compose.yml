@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # ── 1. Python / FastAPI ML Engine (Vision, Audio FAISS, Forensics, Watchdog) ──
+  ml-engine:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile.fastapi
+    container_name: mediaguard-ml-engine
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - REDIS_URL=redis://redis:6379
+      - MONGO_URI=mongodb://mongo:27017/mediaguard
+      - WATCHDOG_ENABLED=true
+      - WATCHDOG_INTERVAL_HOURS=6
+      - WATCHDOG_ALERT_THRESHOLD=50
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN:-}
+      - YOUTUBE_COOKIES_B64=${YOUTUBE_COOKIES_B64:-}
+    volumes:
+      - ml-vault:/app/vault
+      - ml-assets:/app/assets
+      - ml-evidence:/app/evidence_vault
+    depends_on:
+      - redis
+      - mongo
+    deploy:
+      resources:
+        limits:
+          memory: 4G # Heavy ML engine requires at least 2-4GB RAM
+
+  # ── 2. Node.js API Orchestrator (Express, Socket.IO, Routes) ───────────────
+  node-backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile.node
+    container_name: mediaguard-node-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - NODE_PORT=8000
+      - CLIENT_URL=http://localhost:5173
+      - FASTAPI_URL=http://ml-engine:8001
+      - MONGO_URI=mongodb://mongo:27017/mediaguard
+      - REDIS_URL=redis://redis:6379
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - ml-engine
+      - mongo
+      - redis
+
+  # ── 3. Frontend Web App (React / Vite + Nginx) ─────────────────────────────
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8000
+    container_name: mediaguard-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - node-backend
+
+  # ── 4. MongoDB Database ───────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: mediaguard-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  # ── 5. Redis Cache / PubSub ───────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: mediaguard-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  mongo-data:
+  redis-data:
+  ml-vault:
+  ml-assets:
+  ml-evidence:
